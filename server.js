@@ -3,8 +3,6 @@ const cors = require("cors");
 const { connectDB } = require("./config/db");
 const userRoutes = require("./routes/userRoutes");
 
-const port = 5000;
-
 const app = express();
 
 app.use(cors());
@@ -18,8 +16,11 @@ app.get("/", (req, res) => {
   res.send("Hello From Scheduler!");
 });
 
-app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
-});
-
 module.exports = app;
+
+if (require.main === module) {
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+  });
+}
