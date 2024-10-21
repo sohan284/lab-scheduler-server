@@ -5,7 +5,15 @@ const userRoutes = require("./routes/userRoutes");
 const port = 5000;
 const app = express();
 
-app.use(cors());
+const allowedOrigins = ["http://localhost:5173"]; // Replace with your actual frontend URL
+
+app.use(
+  cors({
+    origin: allowedOrigins,
+    methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+    credentials: true, // Allow credentials (cookies, authorization headers)
+  })
+);
 app.use(express.json());
 
 connectDB();
