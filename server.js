@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const { connectDB } = require("./config/db");
 const userRoutes = require("./routes/userRoutes");
+const taskRoutes = require("./routes/taskRoutes");
 const port = 5000;
 const app = express();
 
@@ -18,7 +19,7 @@ app.use(express.json());
 
 connectDB();
 
-app.use("/", userRoutes);
+app.use("/", userRoutes, taskRoutes);
 
 app.get("/", (req, res) => {
   res.send("Hello From Scheduler!");
