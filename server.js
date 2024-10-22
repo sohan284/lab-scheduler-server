@@ -6,29 +6,31 @@ const taskRoutes = require("./routes/taskRoutes");
 const port = 5000;
 const app = express();
 
+// Define allowed origins
 const allowedOrigins = [
   "http://localhost:5173",
   "https://lab-scheduler-tau.vercel.app",
   "https://lab-scheduler.netlify.app",
-]; // Replace with your actual frontend URL
+];
 
+// Set up CORS middleware
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Allow requests with no origin like mobile apps or curl requests
-      if (!origin) return callback(null, true);
-      if (allowedOrigins.indexOf(origin) === -1) {
-        // If origin is not allowed, send error
-        return callback(new Error("Not allowed by CORS"), false);
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
       }
-      return callback(null, true);
     },
-    methods: "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS", // Include OPTIONS method
+    methods: "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS",
     allowedHeaders:
-      "Origin, X-Requested-With, Content-Type, Accept, Authorization", // Allow necessary headers
-    credentials: true, // Allow credentials (cookies, authorization headers)
+      "Origin, X-Requested-With, Content-Type, Accept, Authorization",
+    credentials: true,
   })
 );
+
+// Make sure CORS is applied before routes
 app.use(express.json());
 
 connectDB();
@@ -42,4 +44,5 @@ app.get("/", (req, res) => {
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 });
+
 module.exports = app;
