@@ -23,7 +23,6 @@ const createTask = async (req, res) => {
 const getTasks = async (req, res) => {
   try {
     const tasksCollection = getDB("lab-scheduler").collection("tasks");
-
     const result = await tasksCollection.find().toArray();
 
     res?.status(200).json({
