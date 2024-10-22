@@ -6,12 +6,16 @@ const taskRoutes = require("./routes/taskRoutes");
 const port = 5000;
 const app = express();
 
-const allowedOrigins = ["http://localhost:5173"]; // Replace with your actual frontend URL
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://lab-scheduler-tau.vercel.app",
+  "https://lab-scheduler.netlify.app",
+]; // Replace with your actual frontend URL
 
 app.use(
   cors({
     origin: allowedOrigins,
-    methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+    methods: "GET,HEAD,PUT,PATCH,POST,DELETE,OPTION",
     credentials: true, // Allow credentials (cookies, authorization headers)
   })
 );

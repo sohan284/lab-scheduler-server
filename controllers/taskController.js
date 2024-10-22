@@ -20,8 +20,8 @@ const createTask = async (req, res) => {
 
     // Generate approval and rejection links
     const taskId = result.insertedId;
-    const approveLink = `http://localhost:5173/tasks/approve/${taskId}`;
-    const rejectLink = `http://localhost:5173/tasks/reject/${taskId}`;
+    const approveLink = `https://lab-scheduler-tau.vercel.app/tasks/approve/${taskId}`;
+    const rejectLink = `https://lab-scheduler-tau.vercel.app/tasks/reject/${taskId}`;
 
     // Send an email with accept and reject links
     const mailOptions = {
