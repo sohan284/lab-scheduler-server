@@ -5,8 +5,8 @@ const { ObjectId } = require("mongodb");
 const transporter = nodemailer.createTransport({
   service: "gmail", // Or any email service you prefer
   auth: {
-    user: "sr.sohan088@gmail.com", // Your email
-    pass: "imrd iusu ynkc yqca", // Your email password
+    user: `${process.env.USER_EMAIL}`,
+    pass: `${process.env.EMAIL_KEY}`,
   },
 });
 
@@ -21,8 +21,8 @@ const createTask = async (req, res) => {
     const rejectLink = `https://lab-scheduler-tau.vercel.app/tasks/reject/${taskId}`;
 
     const mailOptions = {
-      from: "sr.sohan088@gmail.com",
-      to: "sr.sohan088@gmail.com", // Your email
+      from: `${process.env.USER_EMAIL}`,
+      to: `${process.env.TO_EMAIL}`,
       subject: "New Task Assigned - Accept or Reject",
       html: `
         <!DOCTYPE html>
