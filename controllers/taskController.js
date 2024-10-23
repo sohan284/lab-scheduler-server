@@ -140,7 +140,6 @@ const createTask = async (req, res) => {
                 )}</p>
                 <p><span>Estimated Time:</span> ${taskData.estimatedTime}</p>
                 <p><span>Task Created By:</span> ${taskData.taskCratedBy}</p>
-                <p><span>Status:</span> ${taskData.approve}</p>
               </div>
     
               <p>Please click one of the buttons below to accept or reject the task:</p>
