@@ -6,7 +6,17 @@ const upsertUser = async (req, res) => {
   try {
     const usersCollection = getDB("lab-scheduler").collection("users");
 
-    const { username, password } = req.body; // Only username and password are required
+    const { username, password } = req.body;
+
+    const existingUser = await usersCollection.findOne({ username });
+
+    if (existingUser) {
+      // If the user already exists, send a response with the appropriate message
+      return res.status(409).json({
+        success: false,
+        message: "Username already exists",
+      });
+    }
 
     const filter = { username }; // Filter to find user by username
     const options = { upsert: true }; // Upsert option to insert if not found
@@ -14,18 +24,18 @@ const upsertUser = async (req, res) => {
     const updateDoc = {
       $set: {
         username,
-        password, // Update password or set it if inserting a new user
+        password,
       },
     };
 
     const result = await usersCollection.updateOne(filter, updateDoc, options);
+
     const token = jwt.sign(
-      {
-        username: username,
-      },
-      `${process.env.JWT_SECRET}`, // Secret key stored in env variables
-      { expiresIn: "1h" } // Token expiry time
+      { username: username },
+      `${process.env.JWT_SECRET}`,
+      { expiresIn: "1h" }
     );
+
     res.status(200).json({
       success: true,
       data: result,
@@ -41,6 +51,7 @@ const upsertUser = async (req, res) => {
     });
   }
 };
+
 const loginUser = async (req, res) => {
   const { username, password } = req.body;
   const usersCollection = getDB("lab-scheduler").collection("users");
