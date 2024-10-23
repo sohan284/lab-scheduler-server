@@ -14,15 +14,12 @@ const createTask = async (req, res) => {
   try {
     const taskData = req.body;
     const tasksCollection = getDB("lab-scheduler").collection("tasks");
-    // Insert task into the database
     const result = await tasksCollection.insertOne(taskData);
 
-    // Generate approval and rejection links
     const taskId = result.insertedId;
     const approveLink = `https://lab-scheduler-tau.vercel.app/tasks/approve/${taskId}`;
     const rejectLink = `https://lab-scheduler-tau.vercel.app/tasks/reject/${taskId}`;
 
-    // Send an email with accept and reject links
     const mailOptions = {
       from: "sr.sohan088@gmail.com",
       to: "sr.sohan088@gmail.com", // Your email
@@ -246,7 +243,7 @@ const rejectTask = async (req, res) => {
 const getTasks = async (req, res) => {
   try {
     const tasksCollection = getDB("lab-scheduler").collection("tasks");
-    const result = await tasksCollection.find().toArray();
+    const result = await tasksCollection.find().sort({ _id: -1 }).toArray();
 
     res?.status(200).json({
       success: true,
