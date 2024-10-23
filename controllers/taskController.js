@@ -26,7 +26,7 @@ const createTask = async (req, res) => {
     // Send an email with accept and reject links
     const mailOptions = {
       from: "sr.sohan088@gmail.com",
-      to: "srsohan284@gmail.com", // Consider using a different recipient for testing
+      to: "sr.sohan088@gmail.com", // Your email
       subject: "New Task Assigned - Accept or Reject",
       html: `
         <p>A new task has been created. Please review and respond:</p>
@@ -38,25 +38,31 @@ const createTask = async (req, res) => {
       `,
     };
 
-    // Send email using async/await
-    const info = await transporter.sendMail(mailOptions);
-    console.log("Email sent: ", info.response);
+    transporter.sendMail(mailOptions, (error, info) => {
+      if (error) {
+        console.error("Error sending task creation email:", error);
+        return res.status(500).json({
+          success: false,
+          message: "Task created but failed to send email",
+          error: error.message,
+        });
+      }
 
-    res.status(201).json({
-      success: true,
-      data: { _id: result.insertedId, ...taskData },
-      message: "Task created and email sent.",
+      res.status(201).json({
+        success: true,
+        data: { _id: result.insertedId, ...taskData },
+        message: "Task created and email sent.",
+      });
     });
   } catch (error) {
-    console.error("Error creating task or sending email:", error);
+    console.error("Error creating task:", error);
     res.status(500).json({
       success: false,
-      message: "Task created but failed to send email",
+      message: "Failed to create task",
       error: error.message,
     });
   }
 };
-
 const approveTask = async (req, res) => {
   try {
     const taskId = req.params.id;
