@@ -20,8 +20,8 @@ const createTask = async (req, res) => {
 
     // Generate approval and rejection links
     const taskId = result.insertedId;
-    const approveLink = `https://lab-scheduler-tau.vercel.app/tasks/approve/${taskId}`;
-    const rejectLink = `https://lab-scheduler-tau.vercel.app/tasks/reject/${taskId}`;
+    const approveLink = `http://localhost:5173/tasks/approve/${taskId}`;
+    const rejectLink = `http://localhost:5173/tasks/reject/${taskId}`;
 
     // Send an email with accept and reject links
     const mailOptions = {
@@ -38,22 +38,21 @@ const createTask = async (req, res) => {
       `,
     };
 
-    transporter.sendMail(mailOptions, (error, info) => {
-      if (error) {
-        console.error("Error sending task creation email:", error);
-        return res.status(500).json({
-          success: false,
-          message: "Task created but failed to send email",
-          error: error.message,
-        });
-      }
-
-      res.status(201).json({
+    try {
+      await transporter.sendMail(mailOptions);
+      res.status(200).json({
         success: true,
         data: { _id: result.insertedId, ...taskData },
         message: "Task created and email sent.",
       });
-    });
+    } catch (error) {
+      console.error("Failed to send OTP:", error);
+      res.status(500).json({
+        success: false,
+        message: "Task created but failed to send email",
+        error: error.message,
+      });
+    }
   } catch (error) {
     console.error("Error creating task:", error);
     res.status(500).json({
