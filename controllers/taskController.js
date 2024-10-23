@@ -14,7 +14,6 @@ const createTask = async (req, res) => {
   try {
     const taskData = req.body;
     const tasksCollection = getDB("lab-scheduler").collection("tasks");
-
     // Insert task into the database
     const result = await tasksCollection.insertOne(taskData);
 
@@ -29,12 +28,133 @@ const createTask = async (req, res) => {
       to: "sr.sohan088@gmail.com", // Your email
       subject: "New Task Assigned - Accept or Reject",
       html: `
-        <p>A new task has been created. Please review and respond:</p>
-        <p>Task Title: ${taskData.taskName}</p>
-        <p>
-          <a href="${approveLink}">Accept Task</a> | 
-          <a href="${rejectLink}">Reject Task</a>
-        </p>
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Task Notification</title>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              background-color: #f4f4f4;
+              margin: 0;
+              padding: 0;
+            }
+            .email-container {
+              max-width: 600px;
+              margin: 40px auto;
+              background-color: #ffffff;
+              padding: 20px;
+              border-radius: 8px;
+              box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+              border: 1px solid #e0e0e0; /* Added border for the body */
+            }
+            .header {
+              text-align: center;
+              background-color: #007bff;
+              padding: 15px;
+              border-top-left-radius: 8px;
+              border-top-right-radius: 8px;
+              color: #ffffff;
+            }
+            .header h1 {
+              margin: 0;
+              font-size: 24px;
+            }
+            .content {
+              padding: 20px;
+              line-height: 1.6;
+            }
+            .content p {
+              margin: 0 0 10px;
+              font-size: 16px;
+            }
+            .task-details {
+              background-color: #f9f9f9;
+              padding: 10px;
+              border-radius: 6px;
+              margin-top: 15px;
+            }
+            .task-details p {
+              margin: 5px 0;
+              font-size: 15px;
+            }
+            .task-details span {
+              font-weight: bold;
+            }
+            .cta-buttons {
+              margin-top: 20px;
+              text-align: center;
+            }
+            .cta-buttons a {
+              text-decoration: none;
+              padding: 12px 20px;
+              border-radius: 5px;
+              font-size: 16px;
+              color: #ffffff;
+              margin: 0 10px;
+              display: inline-block;
+              transition: background-color 0.3s ease; /* Smooth hover transition */
+            }
+            .cta-buttons a.accept {
+              background-color: #28a745;
+              border: 1px solid #28a745;
+            }
+            .cta-buttons a.reject {
+              background-color: #dc3545;
+              border: 1px solid #dc3545;
+            }
+            /* Hover effects for the buttons */
+            .cta-buttons a.accept:hover {
+              background-color: #218838;
+            }
+            .cta-buttons a.reject:hover {
+              background-color: #c82333;
+            }
+            .footer {
+              margin-top: 30px;
+              text-align: center;
+              font-size: 14px;
+              color: #888888;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="email-container">
+            <div class="header">
+              <h1>New Task Assigned</h1>
+            </div>
+            <div class="content">
+              <p>Hello,</p>
+              <p>A new task has been created and assigned to you. Please review the task details below:</p>
+    
+              <div class="task-details">
+                <p><span>Task Name:</span> ${taskData.taskName}</p>
+                <p><span>Course:</span> ${taskData.course}</p>
+                <p><span>Start Date:</span> ${new Date(
+                  taskData.startDate
+                ).toLocaleString()}</p>
+                <p><span>Time Slots:</span> ${taskData.selectedTimeSlots.join(
+                  ", "
+                )}</p>
+                <p><span>Estimated Time:</span> ${taskData.estimatedTime}</p>
+                <p><span>Task Created By:</span> ${taskData.taskCratedBy}</p>
+                <p><span>Status:</span> ${taskData.approve}</p>
+              </div>
+    
+              <p>Please click one of the buttons below to accept or reject the task:</p>
+              <div class="cta-buttons">
+                <a href="${approveLink}" class="accept">Accept Task</a>
+                <a href="${rejectLink}" class="reject">Reject Task</a>
+              </div>
+            </div>
+            <div class="footer">
+              <p>If you have any questions, please contact the administrator.</p>
+            </div>
+          </div>
+        </body>
+        </html>
       `,
     };
 
