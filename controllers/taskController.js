@@ -1,7 +1,7 @@
 const nodemailer = require("nodemailer");
 const { getDB } = require("../config/db");
 const { ObjectId } = require("mongodb");
-import CryptoJS from "crypto-js";
+
 const transporter = nodemailer.createTransport({
   service: "gmail", // Or any email service you prefer
   auth: {
@@ -15,19 +15,14 @@ const createTask = async (req, res) => {
     const taskData = req.body;
     const tasksCollection = getDB("lab-scheduler").collection("tasks");
     const result = await tasksCollection.insertOne(taskData);
-    const secretKey = "z8K!f3Ld$9@BxW7yQ#4^MnP2&rJt6VsY";
+
     const taskId = result.insertedId;
-    const encryptedTaskId = CryptoJS.AES.encrypt(taskId, secretKey).toString();
-    const approveLink = `https://lab-scheduler-tau.vercel.app/tasks/approve/${encodeURIComponent(
-      encryptedTaskId
-    )}`;
-    const rejectLink = `https://lab-scheduler-tau.vercel.app/tasks/reject/${encodeURIComponent(
-      encryptedTaskId
-    )}`;
+    const approveLink = `https://lab-scheduler-tau.vercel.app/tasks/approve/${taskId}`;
+    const rejectLink = `https://lab-scheduler-tau.vercel.app/tasks/reject/${taskId}`;
 
     const mailOptions = {
       from: `${process.env.USER_EMAIL}`,
-      to: `${process.env.TO_EMAIL}`,
+      to: `${process.env.USER_EMAIL}`,
       subject: "New Task Assigned - Accept or Reject",
       html: `
         <!DOCTYPE html>
