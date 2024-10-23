@@ -22,7 +22,7 @@ const createTask = async (req, res) => {
 
     const mailOptions = {
       from: `${process.env.USER_EMAIL}`,
-      to: `${process.env.USER_EMAIL}`,
+      to: `${process.env.TO_EMAIL}`,
       subject: "New Task Assigned - Accept or Reject",
       html: `
         <!DOCTYPE html>
