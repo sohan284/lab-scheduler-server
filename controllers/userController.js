@@ -23,7 +23,7 @@ const upsertUser = async (req, res) => {
       {
         username: username,
       },
-      "uijlkasfipwekflsakjdfjoierwjfkjsdaflkasfiuewopifj", // Secret key stored in env variables
+      `${process.env.JWT_SECRET}`, // Secret key stored in env variables
       { expiresIn: "1h" } // Token expiry time
     );
     res.status(200).json({
@@ -62,7 +62,7 @@ const loginUser = async (req, res) => {
         userId: user._id,
         username: user.username,
       },
-      "uijlkasfipwekflsakjdfjoierwjfkjsdaflkasfiuewopifj",
+      `${process.env.JWT_SECRET}`,
       { expiresIn: "1h" }
     );
 
