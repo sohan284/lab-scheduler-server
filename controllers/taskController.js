@@ -181,24 +181,32 @@ const createTask = async (req, res) => {
 const approveTask = async (req, res) => {
   try {
     const taskId = req.params.id;
-
     const tasksCollection = getDB("lab-scheduler").collection("tasks");
 
-    const result = await tasksCollection.updateOne(
-      { _id: new ObjectId(taskId) },
-      { $set: { approve: "Approved" } }
-    );
+    const task = await tasksCollection.findOne({ _id: new ObjectId(taskId) });
 
-    if (result.matchedCount === 0) {
+    if (!task) {
       return res
         .status(404)
         .json({ success: false, message: "Task not found" });
     }
 
-    res.status(200).json({
-      success: true,
-      message: "Task approved successfully.",
-    });
+    // Change status only if it's "Pending"
+    if (task.approve === "Pending") {
+      await tasksCollection.updateOne(
+        { _id: new ObjectId(taskId) },
+        { $set: { approve: "Approved" } }
+      );
+
+      return res.status(200).json({
+        success: true,
+        message: "Task approved successfully.",
+      });
+    } else {
+      return res
+        .status(400)
+        .json({ success: false, message: "Task must be Pending to approve." });
+    }
   } catch (error) {
     console.error("Error approving task:", error);
     res.status(500).json({
@@ -208,28 +216,36 @@ const approveTask = async (req, res) => {
     });
   }
 };
+
 const rejectTask = async (req, res) => {
   try {
     const taskId = req.params.id;
-
     const tasksCollection = getDB("lab-scheduler").collection("tasks");
 
-    // Update the task's approved status to false instead of deleting it
-    const result = await tasksCollection.updateOne(
-      { _id: new ObjectId(taskId) },
-      { $set: { approve: "Rejected" } }
-    );
+    const task = await tasksCollection.findOne({ _id: new ObjectId(taskId) });
 
-    if (result.matchedCount === 0) {
+    if (!task) {
       return res
         .status(404)
         .json({ success: false, message: "Task not found" });
     }
 
-    res.status(200).json({
-      success: true,
-      message: "Task rejected successfully.",
-    });
+    // Change status only if it's "Pending"
+    if (task.approve === "Pending") {
+      await tasksCollection.updateOne(
+        { _id: new ObjectId(taskId) },
+        { $set: { approve: "Rejected" } }
+      );
+
+      return res.status(200).json({
+        success: true,
+        message: "Task rejected successfully.",
+      });
+    } else {
+      return res
+        .status(400)
+        .json({ success: false, message: "Task must be Pending to reject." });
+    }
   } catch (error) {
     console.error("Error rejecting task:", error);
     res.status(500).json({
