@@ -1,20 +1,6 @@
 const nodemailer = require("nodemailer");
 const { getDB } = require("../config/db");
 const { ObjectId } = require("mongodb");
-const crypto = require("crypto");
-const secret = "ae54bdedb30fef052ffcf05adffd3449";
-const algorithm = "aes-128-cbc";
-function encrypt(text) {
-  const iv = crypto.randomBytes(16);
-  const cipher = crypto.createCipheriv(
-    algorithm,
-    Buffer.from(secret, "hex"),
-    iv
-  );
-  let encrypted = cipher.update(text, "utf8", "hex");
-  encrypted += cipher.final("hex");
-  return iv.toString("hex") + ":" + encrypted;
-}
 
 const transporter = nodemailer.createTransport({
   service: "gmail", // Or any email service you prefer
@@ -30,10 +16,9 @@ const createTask = async (req, res) => {
     const tasksCollection = getDB("lab-scheduler").collection("tasks");
     const result = await tasksCollection.insertOne(taskData);
 
-    const taskId = result.insertedId.toString();
-    const encryptedTaskId = encrypt(taskId);
-    const approveLink = `https://lab-scheduler-tau.vercel.app/tasks/approve/${encryptedTaskId}`;
-    const rejectLink = `https://lab-scheduler-tau.vercel.app/tasks/reject/${encryptedTaskId}`;
+    const taskId = result.insertedId;
+    const approveLink = `https://lab-scheduler-tau.vercel.app/tasks/approve/${taskId}`;
+    const rejectLink = `https://lab-scheduler-tau.vercel.app/tasks/reject/${taskId}`;
 
     const mailOptions = {
       from: `${process.env.USER_EMAIL}`,
