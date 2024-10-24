@@ -32,8 +32,8 @@ const createTask = async (req, res) => {
 
     const taskId = result.insertedId.toString();
     const encryptedTaskId = encrypt(taskId);
-    const approveLink = `http://localhost:5173/tasks/approve/${encryptedTaskId}`;
-    const rejectLink = `http://localhost:5173/tasks/reject/${encryptedTaskId}`;
+    const approveLink = `https://lab-scheduler-tau.vercel.app/tasks/approve/${encryptedTaskId}`;
+    const rejectLink = `https://lab-scheduler-tau.vercel.app/tasks/reject/${encryptedTaskId}`;
 
     const mailOptions = {
       from: `${process.env.USER_EMAIL}`,
