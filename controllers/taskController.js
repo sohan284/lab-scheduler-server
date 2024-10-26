@@ -132,6 +132,9 @@ const createTask = async (req, res) => {
                 <p><span>Start Date:</span> ${new Date(
                   taskData.startDate
                 ).toLocaleString()}</p>
+                 <p><span>Mechines:</span> ${taskData.selectedMachine.join(
+                   ", "
+                 )}</p>
                 <p><span>Time Slots:</span> ${taskData.selectedTimeSlots.join(
                   ", "
                 )}</p>
