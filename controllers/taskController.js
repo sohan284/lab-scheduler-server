@@ -131,7 +131,7 @@ const createTask = async (req, res) => {
                 <p><span>Start Date:</span> ${new Date(
                   taskData.startDate
                 ).toLocaleString()}</p>
-                 <p><span>Mechines:</span> ${taskData.selectedCourse.join(
+                 <p><span>Courses:</span> ${taskData.selectedCourse.join(
                    ", "
                  )}</p>
                   <p><span>Mechines:</span> ${taskData.selectedMachine.join(
