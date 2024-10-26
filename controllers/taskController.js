@@ -128,13 +128,15 @@ const createTask = async (req, res) => {
     
               <div class="task-details">
                 <p><span>Task Name:</span> ${taskData.taskName}</p>
-                <p><span>Course:</span> ${taskData.course}</p>
                 <p><span>Start Date:</span> ${new Date(
                   taskData.startDate
                 ).toLocaleString()}</p>
-                 <p><span>Mechines:</span> ${taskData.selectedMachine.join(
+                 <p><span>Mechines:</span> ${taskData.selectedCourse.join(
                    ", "
                  )}</p>
+                  <p><span>Mechines:</span> ${taskData.selectedMachine.join(
+                    ", "
+                  )}</p>
                 <p><span>Time Slots:</span> ${taskData.selectedTimeSlots.join(
                   ", "
                 )}</p>
