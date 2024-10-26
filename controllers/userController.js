@@ -87,8 +87,37 @@ const loginUser = async (req, res) => {
     });
   }
 };
+const removeUser = async (req, res) => {
+  const username = req.params.username;
+  try {
+    const usersCollection = getDB("lab-scheduler").collection("users");
+    const result = await usersCollection.deleteOne({
+      username: username,
+    });
+
+    if (result.deletedCount === 1) {
+      res.status(200).json({
+        success: true,
+        message: "account deleted successfully",
+      });
+    } else {
+      res.status(404).json({
+        success: false,
+        message: "account not found",
+      });
+    }
+  } catch (error) {
+    console.error("Error deleting account:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to delete account",
+      error: error.message,
+    });
+  }
+};
 
 module.exports = {
   upsertUser,
   loginUser,
+  removeUser,
 };
