@@ -97,7 +97,7 @@ const removeUser = async (req, res) => {
     const tasksCollection = db.collection("tasks");
     const usersCollection = db.collection("users");
 
-    await tasksCollection.deleteMany({ taskCratedBy: username });
+    await tasksCollection.deleteMany({ createdBy: username });
 
     const result = await usersCollection.deleteOne({ username: username });
 

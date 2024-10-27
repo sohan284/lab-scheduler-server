@@ -133,7 +133,7 @@ const createTask = async (req, res) => {
                 <p>A new task has been scheduled </p>
     
                 <div class="task-details">
-                  <p><span>Email:</span> ${taskData.taskCratedBy}</p>
+                  <p><span>Email:</span> ${taskData.createdBy}</p>
                   <p><span>Scheduled Date:</span> ${new Date(
                     taskData.startDate
                   ).toLocaleString()}</p>
@@ -513,24 +513,37 @@ const rejectTask = async (req, res) => {
 };
 
 const getTasks = async (req, res) => {
+  const username = req.query.username;
+  console.log(username);
+
+  let filter = {};
+
+  if (username) {
+    filter = { createdBy: username };
+  }
+
   try {
     const tasksCollection = getDB("lab-scheduler").collection("tasks");
-    const result = await tasksCollection.find().sort({ _id: -1 }).toArray();
+    const result = await tasksCollection
+      .find(filter) // Apply the filter (either empty or with username)
+      .sort({ _id: -1 }) // Sort by ID in descending order
+      .toArray();
 
-    res?.status(200).json({
+    res.status(200).json({
       success: true,
       data: result,
-      message: "Task retrieved successfully",
+      message: "Tasks retrieved successfully",
     });
   } catch (error) {
     console.error("Error fetching tasks:", error);
-    res?.status(500).json({
+    res.status(500).json({
       success: false,
       error: "Failed to fetch tasks",
       message: error.message,
     });
   }
 };
+
 module.exports = {
   getTasks,
   createTask,
