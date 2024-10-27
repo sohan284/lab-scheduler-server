@@ -442,60 +442,13 @@ const rejectTask = async (req, res) => {
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>Task Notification</title>
             <style>
-              body {
-                font-family: Arial, sans-serif;
-                background-color: #f4f4f4;
-                margin: 0;
-                padding: 0;
-              }
-              .email-container {
-                max-width: 600px;
-                margin: 40px auto;
-                background-color: #ffffff;
-                padding: 20px;
-                border-radius: 8px;
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-                border: 1px solid #e0e0e0;
-              }
-              .header {
-                text-align: center;
-                background-color: #dc3545; /* Red color for rejection */
-                padding: 15px;
-                border-top-left-radius: 8px;
-                border-top-right-radius: 8px;
-                color: #ffffff;
-              }
-              .header h1 {
-                margin: 0;
-                font-size: 24px;
-              }
-              .content {
-                padding: 20px;
-                line-height: 1.6;
-              }
-              .content p {
-                margin: 0 0 10px;
-                font-size: 16px;
-              }
-              .task-details {
-                background-color: #f9f9f9;
-                padding: 10px;
-                border-radius: 6px;
-                margin-top: 15px;
-              }
-              .task-details p {
-                margin: 5px 0;
-                font-size: 15px;
-              }
-              .task-details span {
-                font-weight: bold;
-              }
-              .footer {
-                margin-top: 30px;
-                text-align: center;
-                font-size: 14px;
-                color: #888888;
-              }
+              body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0; }
+              .email-container { max-width: 600px; margin: 40px auto; background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); border: 1px solid #e0e0e0; }
+              .header { text-align: center; background-color: #dc3545; padding: 15px; border-top-left-radius: 8px; border-top-right-radius: 8px; color: #ffffff; }
+              .header h1 { margin: 0; font-size: 24px; }
+              .content { padding: 20px; line-height: 1.6; }
+              .task-details { background-color: #f9f9f9; padding: 10px; border-radius: 6px; margin-top: 15px; }
+              .footer { margin-top: 30px; text-align: center; font-size: 14px; color: #888888; }
             </style>
           </head>
           <body>
@@ -506,7 +459,6 @@ const rejectTask = async (req, res) => {
               <div class="content">
                 <p>Hi there,</p>
                 <p>Thank you for your submission. After careful consideration, we regret to inform you that your task has not been approved at this time.</p>
-                <p>If you have any questions or need further clarification, please don’t hesitate to reach out. We appreciate your understanding and encourage you to submit again in the future.</p>
                 <div class="task-details">
                   <p><span>Task Name:</span> ${taskData.taskName}</p>
                   <p><span>Courses:</span> ${taskData.selectedCourse.join(
@@ -534,20 +486,18 @@ const rejectTask = async (req, res) => {
 
       try {
         await transporter.sendMail(studentMailOptions);
-        console.log("Rejection email sent successfully.");
-      } catch (error) {
-        console.error("Failed to send rejection email:", error);
+        return res.status(200).json({
+          success: true,
+          message: "Task rejected successfully and email sent.",
+        });
+      } catch (emailError) {
+        console.error("Failed to send rejection email:", emailError);
         return res.status(500).json({
           success: false,
           message: "Task rejected, but failed to send rejection email",
-          error: error.message,
+          error: emailError.message,
         });
       }
-
-      return res.status(200).json({
-        success: true,
-        message: "Task rejected successfully.",
-      });
     } else {
       return res.status(400).json({
         success: false,
