@@ -1,40 +1,41 @@
 const { ObjectId } = require("mongodb");
 const jwt = require("jsonwebtoken");
+const bcrypt = require("bcrypt");
 const { getDB } = require("../config/db");
+
+const saltRounds = 10; // You can adjust this number for more security but it will affect performance.
 
 const upsertUser = async (req, res) => {
   try {
     const usersCollection = getDB("lab-scheduler").collection("users");
-
     const { username, password } = req.body;
 
     const existingUser = await usersCollection.findOne({ username });
 
     if (existingUser) {
-      // If the user already exists, send a response with the appropriate message
       return res.status(409).json({
         success: false,
         message: "Username already exists",
       });
     }
 
-    const filter = { username }; // Filter to find user by username
-    const options = { upsert: true }; // Upsert option to insert if not found
+    // Hash the password before saving
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
 
+    const filter = { username };
+    const options = { upsert: true };
     const updateDoc = {
       $set: {
         username,
-        password,
+        password: hashedPassword, // Save the hashed password
       },
     };
 
     const result = await usersCollection.updateOne(filter, updateDoc, options);
 
-    const token = jwt.sign(
-      { username: username },
-      `${process.env.JWT_SECRET}`,
-      { expiresIn: "1h" }
-    );
+    const token = jwt.sign({ username }, `${process.env.JWT_SECRET}`, {
+      expiresIn: "1h",
+    });
 
     res.status(200).json({
       success: true,
@@ -58,13 +59,14 @@ const loginUser = async (req, res) => {
 
   try {
     const user = await usersCollection.findOne({ username });
-    console.log(user);
 
     if (!user) {
       return res.status(401).json({ message: "Invalid User" });
     }
 
-    if (user.password !== password) {
+    // Compare the hashed password with the provided password
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
       return res.status(401).json({ message: "Invalid Password" });
     }
 
@@ -87,6 +89,7 @@ const loginUser = async (req, res) => {
     });
   }
 };
+
 const removeUser = async (req, res) => {
   const username = req.params.username;
   try {
