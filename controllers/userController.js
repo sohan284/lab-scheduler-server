@@ -8,7 +8,15 @@ const crypto = require("crypto");
 let otpStore = {};
 const sendOtp = async (req, res) => {
   const { email } = req.body;
+  const usersCollection = getDB("lab-scheduler").collection("users");
+  const existingUser = await usersCollection.findOne({ username: email });
 
+  if (existingUser) {
+    return res.status(409).json({
+      success: false,
+      message: "Username already exists",
+    });
+  }
   const otp = crypto.randomInt(100000, 999999).toString();
 
   otpStore[email] = { otp, createdAt: Date.now() };
