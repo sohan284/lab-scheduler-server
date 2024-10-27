@@ -407,7 +407,6 @@ const approveTask = async (req, res) => {
     });
   }
 };
-
 const rejectTask = async (req, res) => {
   try {
     const taskId = req.params.id;
@@ -432,7 +431,7 @@ const rejectTask = async (req, res) => {
 
       const studentMailOptions = {
         from: `${process.env.USER_EMAIL}`,
-        to: taskData.taskCratedBy, // Use the creator's email from taskData
+        to: `sr.sohan088@gmail.com`, // Consider using taskData.email or a variable for dynamic emails
         subject: "Task Scheduled Denied",
         html: `
           <!DOCTYPE html>
@@ -454,22 +453,22 @@ const rejectTask = async (req, res) => {
           <body>
             <div class="email-container">
               <div class="header">
-                <h1>Task Rejected</h1>
+                <h1>Task Denied</h1>
               </div>
               <div class="content">
-                <p>Hi there,</p>
+                  <p>Hi there,</p>
                 <p>Thank you for your submission. After careful consideration, we regret to inform you that your task has not been approved at this time.</p>
                 <div class="task-details">
                   <p><span>Task Name:</span> ${taskData.taskName}</p>
-                  <p><span>Courses:</span> ${taskData.selectedCourse.join(
-                    ", "
-                  )}</p>
-                  <p><span>Machine:</span> ${taskData.selectedMachine.join(
-                    ", "
-                  )}</p>
-                  <p><span>Estimated Time Required:</span> ${
-                    taskData.estimatedTime
-                  }</p>
+                   <p><span>Courses:</span> ${taskData.selectedCourse.join(
+                     ", "
+                   )}</p>
+                   <p><span>Machine:</span> ${taskData.selectedMachine.join(
+                     ", "
+                   )}</p>
+                   <p><span>Estimated Time Required:</span> ${
+                     taskData.estimatedTime
+                   }</p>
                   <p><span>Scheduled Date:</span> ${new Date(
                     taskData.startDate
                   ).toLocaleString()}</p>
@@ -491,24 +490,23 @@ const rejectTask = async (req, res) => {
           message: "Task rejected successfully and email sent.",
         });
       } catch (emailError) {
-        console.error("Failed to send rejection email:", emailError);
+        console.error("Failed to send email:", emailError);
         return res.status(500).json({
           success: false,
-          message: "Task rejected, but failed to send rejection email",
+          message: "Task rejected, but failed to send email",
           error: emailError.message,
         });
       }
     } else {
-      return res.status(400).json({
-        success: false,
-        message: "Task must be Pending to reject.",
-      });
+      return res
+        .status(400)
+        .json({ success: false, message: "Task must be Pending to approve." });
     }
   } catch (error) {
-    console.error("Error rejecting task:", error);
+    console.error("Error approving task:", error);
     res.status(500).json({
       success: false,
-      message: "Failed to reject task",
+      message: "Failed to approve task",
       error: error.message,
     });
   }
