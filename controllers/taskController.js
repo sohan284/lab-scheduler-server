@@ -1,14 +1,7 @@
 const nodemailer = require("nodemailer");
 const { getDB } = require("../config/db");
 const { ObjectId } = require("mongodb");
-
-const transporter = nodemailer.createTransport({
-  service: "gmail", // Or any email service you prefer
-  auth: {
-    user: `${process.env.USER_EMAIL}`,
-    pass: `${process.env.EMAIL_KEY}`,
-  },
-});
+const transporter = require("../utils/mailer");
 
 const createTask = async (req, res) => {
   try {
