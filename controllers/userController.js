@@ -2,9 +2,61 @@ const { ObjectId } = require("mongodb");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const { getDB } = require("../config/db");
-
+const transporter = require("../utils/mailer");
 const saltRounds = 10; // You can adjust this number for more security but it will affect performance.
+const crypto = require("crypto");
+let otpStore = {};
+const sendOtp = async (req, res) => {
+  const { email } = req.body;
 
+  const otp = crypto.randomInt(100000, 999999).toString();
+
+  otpStore[email] = { otp, createdAt: Date.now() };
+
+  const mailOptions = {
+    from: "srsohan284@gmail.com",
+    to: email,
+    subject: "Your OTP Code",
+    text: `Your OTP code is ${otp}. It is valid for 2 minutes.`,
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    res.status(200).json({ success: true, message: "OTP sent successfully" });
+  } catch (error) {
+    console.error("Failed to send OTP:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to send OTP",
+      error: error.message,
+    });
+  }
+};
+const verifyOtp = async (req, res) => {
+  const { email, otp } = req.body;
+
+  if (!otpStore[email]) {
+    return res
+      .status(400)
+      .json({ success: false, message: "No OTP sent or expired" });
+  }
+
+  const storedOtpData = otpStore[email];
+  const otpCreatedAt = storedOtpData.createdAt;
+
+  if (Date.now() - otpCreatedAt > 2 * 60 * 1000) {
+    delete otpStore[email];
+    return res.status(400).json({ success: false, message: "OTP expired" });
+  }
+
+  if (storedOtpData.otp !== otp) {
+    return res.status(400).json({ success: false, message: "Invalid OTP" });
+  }
+
+  delete otpStore[email];
+
+  res.status(200).json({ success: true, message: "OTP verified successfully" });
+};
 const upsertUser = async (req, res) => {
   try {
     const usersCollection = getDB("lab-scheduler").collection("users");
@@ -126,4 +178,6 @@ module.exports = {
   upsertUser,
   loginUser,
   removeUser,
+  sendOtp,
+  verifyOtp,
 };
