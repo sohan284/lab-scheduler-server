@@ -23,7 +23,7 @@ const createTask = async (req, res) => {
     const mailOptions = {
       from: `${process.env.USER_EMAIL}`,
       to: `${process.env.TO_EMAIL}`,
-      subject: "New Task Assigned - Accept or Reject",
+      subject: "Student Requires Approval to Use HP Indigo",
       html: `
         <!DOCTYPE html>
         <html lang="en">
@@ -127,27 +127,21 @@ const createTask = async (req, res) => {
               <p>A new task has been created and assigned to you. Please review the task details below:</p>
     
               <div class="task-details">
-                <p><span>Task Name:</span> ${taskData.taskName}</p>
-                <p><span>Start Date:</span> ${new Date(
-                  taskData.startDate
-                ).toLocaleString()}</p>
-                 <p><span>Courses:</span> ${taskData.selectedCourse.join(
-                   ", "
-                 )}</p>
-                  <p><span>Mechines:</span> ${taskData.selectedMachine.join(
-                    ", "
-                  )}</p>
+               <p><span>Email:</span> ${taskData.taskCratedBy}</p>
+                 <p><span>Scheduled Date</span> ${new Date(
+                   taskData.startDate
+                 ).toLocaleString()}</p>
+              <p><span> Time:</span> ${taskData.estimatedTime}</p>
                 <p><span>Time Slots:</span> ${taskData.selectedTimeSlots.join(
                   ", "
                 )}</p>
-                <p><span>Estimated Time:</span> ${taskData.estimatedTime}</p>
-                <p><span>Task Created By:</span> ${taskData.taskCratedBy}</p>
+                
               </div>
     
               <p>Please click one of the buttons below to accept or reject the task:</p>
               <div class="cta-buttons">
-                <a href="${approveLink}" class="accept">Accept Task</a>
-                <a href="${rejectLink}" class="reject">Reject Task</a>
+                <a href="${approveLink}" class="accept">Approve</a>
+                <a href="${rejectLink}" class="reject">Deny</a>
               </div>
             </div>
             <div class="footer">
@@ -160,7 +154,9 @@ const createTask = async (req, res) => {
     };
 
     try {
-      await transporter.sendMail(mailOptions);
+      if (taskData.sendApproval) {
+        await transporter.sendMail(mailOptions);
+      }
       res.status(200).json({
         success: true,
         data: { _id: result.insertedId, ...taskData },
