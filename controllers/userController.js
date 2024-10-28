@@ -68,7 +68,7 @@ const verifyOtp = async (req, res) => {
 const upsertUser = async (req, res) => {
   try {
     const usersCollection = getDB("lab-scheduler").collection("users");
-    const { username, password } = req.body;
+    const { username, password, role } = req.body;
 
     const existingUser = await usersCollection.findOne({ username });
 
@@ -87,7 +87,8 @@ const upsertUser = async (req, res) => {
     const updateDoc = {
       $set: {
         username,
-        password: hashedPassword, // Save the hashed password
+        password: hashedPassword,
+        role,
       },
     };
 
@@ -134,6 +135,7 @@ const loginUser = async (req, res) => {
       {
         userId: user._id,
         username: user.username,
+        role: user.role,
       },
       `${process.env.JWT_SECRET}`,
       { expiresIn: "1h" }
