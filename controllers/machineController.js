@@ -28,25 +28,25 @@ const createMachine = async (req, res) => {
     res.status(201).json({
       success: true,
       data: { _id: result.insertedId, ...data },
-      message: "Tag created successfully",
+      message: "Machine created successfully",
     });
   } catch (error) {
-    console.error("Error creating todos:", error);
+    console.error("Error creating machine:", error);
     res.status(500).json({
       success: false,
-      message: "Failed to create todo",
+      message: "Failed to create machine",
       error: error.message,
     });
   }
 };
 
-const updateTag = async (req, res) => {
-  const statusId = req.params.id;
-  const { title, txColor, bgColor } = req.body;
+const updateMachine = async (req, res) => {
+  const id = req.params.id;
+  const { title, author, tutorial } = req.body;
 
   // Check if the ID is valid
-  if (!ObjectId.isValid(statusId)) {
-    console.error("Invalid status ID:", statusId);
+  if (!ObjectId.isValid(id)) {
+    console.error("Invalid status ID:", id);
     return res.status(400).json({
       success: false,
       message: "Invalid status ID",
@@ -54,7 +54,7 @@ const updateTag = async (req, res) => {
   }
 
   // Validate that only title and color fields are allowed
-  const allowedFields = ["title", "txColor", "bgColor"];
+  const allowedFields = ["title", "author", "tutorial"];
   const invalidFields = Object.keys(req.body).filter(
     (key) => !allowedFields.includes(key)
   );
@@ -72,16 +72,16 @@ const updateTag = async (req, res) => {
 
     // Update fields only if they are provided in the request body
     if (title !== undefined) updateFields.title = title;
-    if (txColor !== undefined) updateFields.txColor = txColor;
-    if (bgColor !== undefined) updateFields.bgColor = bgColor;
+    if (author !== undefined) updateFields.author = author;
+    if (tutorial !== undefined) updateFields.tutorial = tutorial;
 
     const result = await machinesCollection.updateOne(
-      { _id: new ObjectId(statusId) },
+      { _id: new ObjectId(id) },
       { $set: updateFields }
     );
 
     if (result.matchedCount === 0) {
-      console.error("Tag not found:", statusId);
+      console.error("Tag not found:", id);
       return res.status(404).json({
         success: false,
         message: "Tag not found",
@@ -102,12 +102,12 @@ const updateTag = async (req, res) => {
   }
 };
 const deleteMachine = async (req, res) => {
-  const statusId = req.params.id;
+  const id = req.params.id;
 
   try {
     const machinesCollection = getDB("lab-scheduler").collection("machines");
     const result = await machinesCollection.deleteOne({
-      _id: new ObjectId(statusId),
+      _id: new ObjectId(id),
     });
 
     if (result.deletedCount === 1) {
@@ -135,4 +135,5 @@ module.exports = {
   getMachines,
   createMachine,
   deleteMachine,
+  updateMachine,
 };
