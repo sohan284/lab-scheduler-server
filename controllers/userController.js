@@ -151,6 +151,73 @@ const loginUser = async (req, res) => {
     });
   }
 };
+const getUsers = async (req, res) => {
+  try {
+    const usersCollection = getDB("lab-scheduler").collection("users");
+    const result = await usersCollection.find().sort({ _id: -1 }).toArray();
+    res.status(200).json({
+      success: true,
+      data: result,
+      message: "User retrieved successfully",
+    });
+  } catch (error) {
+    console.error("Error fetching User:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to fetch User",
+      message: error.message,
+    });
+  }
+};
+const updateUser = async (req, res) => {
+  const username = req.params.username; // Get the username from the request parameters
+  const { role } = req.body; // Extract the updated role from the request body
+
+  if (!role) {
+    return res.status(400).json({
+      success: false,
+      message: "Role is required to update the user",
+    });
+  }
+
+  try {
+    const usersCollection = getDB("lab-scheduler").collection("users");
+
+    // Check if the user exists
+    const existingUser = await usersCollection.findOne({ username });
+    if (!existingUser) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // Update the user's role
+    const result = await usersCollection.updateOne(
+      { username },
+      { $set: { role } } // Only update the role
+    );
+
+    if (result.modifiedCount === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No changes made to the user",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "User role updated successfully",
+    });
+  } catch (error) {
+    console.error("Error updating user role:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to update user role",
+      message: error.message,
+    });
+  }
+};
 
 const removeUser = async (req, res) => {
   const username = req.params.username;
@@ -190,4 +257,6 @@ module.exports = {
   removeUser,
   sendOtp,
   verifyOtp,
+  getUsers,
+  updateUser,
 };

@@ -18,13 +18,14 @@ const createTask = async (req, res) => {
       const taskId = result.insertedId;
       const approveLink = `https://lab-scheduler-tau.vercel.app/tasks/approve/${taskId}`;
       const rejectLink = `https://lab-scheduler-tau.vercel.app/tasks/reject/${taskId}`;
-
-      const facultyMailOptions = {
-        from: `${process.env.USER_EMAIL}`,
-        to: `${process.env.TO_EMAIL}`,
-        subject: "Student Requires Approval to Use HP Indigo",
-        html: `
-          <!DOCTYPE html>
+    
+      const sendEmailToAuthor = async (authorEmail, machineTitle) => {
+        const mailOptions = {
+          from: `${process.env.USER_EMAIL}`,
+          to: authorEmail,
+          subject: `Approval Request for ${machineTitle}`,
+          html: `
+           <!DOCTYPE html>
           <html lang="en">
           <head>
             <meta charset="UTF-8">
@@ -148,25 +149,40 @@ const createTask = async (req, res) => {
             </div>
           </body>
           </html>
-        `,
+          `,
+        };
+    
+        try {
+          await transporter.sendMail(mailOptions);
+          console.log(`Email sent to ${authorEmail} for ${machineTitle}`);
+        } catch (error) {
+          console.error(`Failed to send email to ${authorEmail}:`, error);
+        }
       };
-
+    
+      const emailPromises = taskData?.selectedMachine?.map(async (machine) => {
+        if (machine.author) {
+          await sendEmailToAuthor(machine.author, machine.title);
+        }
+      });
+    
       try {
-        await transporter.sendMail(facultyMailOptions);
+        await Promise.all(emailPromises);
         res.status(200).json({
           success: true,
           data: { _id: result.insertedId, ...taskData },
-          message: "Task created and email sent.",
+          message: "Task created and emails sent.",
         });
       } catch (error) {
-        console.error("Failed to send email:", error);
+        console.error("Failed to send all emails:", error);
         res.status(500).json({
           success: false,
-          message: "Task created but failed to send email",
+          message: "Task created but failed to send some emails",
           error: error.message,
         });
       }
-    } else {
+    }
+    else {
       const studentMailOptions = {
         from: `${process.env.USER_EMAIL}`,
         to: `sr.sohan088@gmail.com`,
@@ -319,7 +335,7 @@ const approveTask = async (req, res) => {
 
       const studentMailOptions = {
         from: `${process.env.USER_EMAIL}`,
-        to: `sr.sohan088@gmail.com`, // Consider using taskData.email or a variable for dynamic emails
+        to: `${taskData?.createdBy}`, // Consider using taskData.email or a variable for dynamic emails
         subject: "Task Scheduled Successfully",
         html: `
           <!DOCTYPE html>
@@ -352,9 +368,7 @@ const approveTask = async (req, res) => {
                    <p><span>Courses:</span> ${taskData.selectedCourse.join(
                      ", "
                    )}</p>
-                   <p><span>Machine:</span> ${taskData.selectedMachine.join(
-                     ", "
-                   )}</p>
+                   <p><span>Machine:</span> ${taskData?.selectedMachine?.map(machine => machine.title).join(", ")}</p>
                    <p><span>Estimated Time Required:</span> ${
                      taskData.estimatedTime
                    }</p>
@@ -424,7 +438,7 @@ const rejectTask = async (req, res) => {
 
       const studentMailOptions = {
         from: `${process.env.USER_EMAIL}`,
-        to: `sr.sohan088@gmail.com`, // Consider using taskData.email or a variable for dynamic emails
+        to: `${taskData?.createdBy}`, // Consider using taskData.email or a variable for dynamic emails
         subject: "Task Scheduled Denied",
         html: `
           <!DOCTYPE html>
@@ -456,9 +470,7 @@ const rejectTask = async (req, res) => {
                    <p><span>Courses:</span> ${taskData.selectedCourse.join(
                      ", "
                    )}</p>
-                   <p><span>Machine:</span> ${taskData.selectedMachine.join(
-                     ", "
-                   )}</p>
+                   <p><span>Machine:</span> ${taskData?.selectedMachine?.map(machine => machine.title).join(", ")}</p>
                    <p><span>Estimated Time Required:</span> ${
                      taskData.estimatedTime
                    }</p>
@@ -507,7 +519,6 @@ const rejectTask = async (req, res) => {
 
 const getTasks = async (req, res) => {
   const username = req.query.username;
-  console.log(username);
 
   let filter = {};
 
