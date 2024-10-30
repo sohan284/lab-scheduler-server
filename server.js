@@ -4,6 +4,7 @@ const { connectDB } = require("./config/db");
 const userRoutes = require("./routes/userRoutes");
 const taskRoutes = require("./routes/taskRoutes");
 const machineRoutes = require("./routes/machineRoutes");
+const courseRoutes = require("./routes/coursesRoutes");
 const port = 5000;
 const app = express();
 
@@ -36,7 +37,7 @@ app.use(express.json());
 
 connectDB();
 
-app.use("/", userRoutes, taskRoutes, machineRoutes);
+app.use("/", userRoutes, taskRoutes, machineRoutes ,courseRoutes);
 
 app.get("/", (req, res) => {
   res.send("Hello From Scheduler!");
