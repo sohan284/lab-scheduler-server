@@ -185,7 +185,7 @@ const createTask = async (req, res) => {
     else {
       const studentMailOptions = {
         from: `${process.env.USER_EMAIL}`,
-        to: `sr.sohan088@gmail.com`,
+        to: `${taskData?.createdBy}`,
         subject: "Task Scheduled Successfully",
         html: `
           <!DOCTYPE html>
