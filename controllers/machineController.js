@@ -42,7 +42,7 @@ const createMachine = async (req, res) => {
 
 const updateMachine = async (req, res) => {
   const id = req.params.id;
-  const { title, author, tutorial } = req.body;
+  const { title, author, tutorial,duration } = req.body;
 
   // Check if the ID is valid
   if (!ObjectId.isValid(id)) {
@@ -54,7 +54,7 @@ const updateMachine = async (req, res) => {
   }
 
   // Validate that only title and color fields are allowed
-  const allowedFields = ["title", "author", "tutorial"];
+  const allowedFields = ["title", "author", "tutorial","duration"];
   const invalidFields = Object.keys(req.body).filter(
     (key) => !allowedFields.includes(key)
   );
@@ -74,6 +74,7 @@ const updateMachine = async (req, res) => {
     if (title !== undefined) updateFields.title = title;
     if (author !== undefined) updateFields.author = author;
     if (tutorial !== undefined) updateFields.tutorial = tutorial;
+    if (duration !== undefined) updateFields.duration = duration;
 
     const result = await machinesCollection.updateOne(
       { _id: new ObjectId(id) },
