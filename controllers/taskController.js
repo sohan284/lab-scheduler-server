@@ -7,300 +7,314 @@ const createTask = async (req, res) => {
   try {
     const taskData = req.body;
     const tasksCollection = getDB("lab-scheduler").collection("tasks");
-    {
-      taskData.sendApproval
-        ? (taskData.approve = "Pending")
-        : (taskData.approve = "Approved");
-    }
-    const result = await tasksCollection.insertOne(taskData);
-    if (taskData.sendApproval) {
-      taskData.approve = "Pending";
-      const taskId = result.insertedId;
-      const approveLink = `https://lab-scheduler-tau.vercel.app/tasks/approve/${taskId}`;
-      const rejectLink = `https://lab-scheduler-tau.vercel.app/tasks/reject/${taskId}`;
-    
-      const sendEmailToAuthor = async (authorEmail, machineTitle) => {
-        const mailOptions = {
+    const machinesCollection = getDB("lab-scheduler").collection("machines");
+    const taskMachines = taskData.selectedMachine;
+
+    try {
+      const machines = await machinesCollection.find({
+          title: { $in: taskMachines } // Replace 'title' with the actual field name
+      }).toArray();
+  
+      console.log(machines);
+      {
+        taskData.sendApproval
+          ? (taskData.approve = "Pending")
+          : (taskData.approve = "Approved");
+      }
+      const result = await tasksCollection.insertOne(taskData);
+      
+      if (taskData.sendApproval) {
+        taskData.approve = "Pending";
+        const taskId = result.insertedId;
+        const approveLink = `https://lab-scheduler-tau.vercel.app/tasks/approve/${taskId}`;
+        const rejectLink = `https://lab-scheduler-tau.vercel.app/tasks/reject/${taskId}`;
+      
+        const sendEmailToAuthor = async (authorEmail, machineTitle) => {
+          const mailOptions = {
+            from: `${process.env.USER_EMAIL}`,
+            to: authorEmail,
+            subject: `Approval Request for ${machineTitle}`,
+            html: `
+             <!DOCTYPE html>
+            <html lang="en">
+            <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>Task Notification</title>
+              <style>
+                body {
+                  font-family: Arial, sans-serif;
+                  background-color: #f4f4f4;
+                  margin: 0;
+                  padding: 0;
+                }
+                .email-container {
+                  max-width: 600px;
+                  margin: 40px auto;
+                  background-color: #ffffff;
+                  padding: 20px;
+                  border-radius: 8px;
+                  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+                  border: 1px solid #e0e0e0; /* Added border for the body */
+                }
+                .header {
+                  text-align: center;
+                  background-color: #007bff;
+                  padding: 15px;
+                  border-top-left-radius: 8px;
+                  border-top-right-radius: 8px;
+                  color: #ffffff;
+                }
+                .header h1 {
+                  margin: 0;
+                  font-size: 24px;
+                }
+                .content {
+                  padding: 20px;
+                  line-height: 1.6;
+                }
+                .content p {
+                  margin: 0 0 10px;
+                  font-size: 16px;
+                }
+                .task-details {
+                  background-color: #f9f9f9;
+                  padding: 10px;
+                  border-radius: 6px;
+                  margin-top: 15px;
+                }
+                .task-details p {
+                  margin: 5px 0;
+                  font-size: 15px;
+                }
+                .task-details span {
+                  font-weight: bold;
+                }
+                .cta-buttons {
+                  margin-top: 20px;
+                  text-align: center;
+                }
+                .cta-buttons a {
+                  text-decoration: none;
+                  padding: 12px 20px;
+                  border-radius: 5px;
+                  font-size: 16px;
+                  color: #ffffff;
+                  margin: 0 10px;
+                  display: inline-block;
+                  transition: background-color 0.3s ease; /* Smooth hover transition */
+                }
+                .cta-buttons a.accept {
+                  background-color: #28a745;
+                  border: 1px solid #28a745;
+                }
+                .cta-buttons a.reject {
+                  background-color: #dc3545;
+                  border: 1px solid #dc3545;
+                }
+                /* Hover effects for the buttons */
+                .cta-buttons a.accept:hover {
+                  background-color: #218838;
+                }
+                .cta-buttons a.reject:hover {
+                  background-color: #c82333;
+                }
+                .footer {
+                  margin-top: 30px;
+                  text-align: center;
+                  font-size: 14px;
+                  color: #888888;
+                }
+              </style>
+            </head>
+            <body>
+              <div class="email-container">
+                <div class="header">
+                  <h1>New Task Assigned</h1>
+                </div>
+                <div class="content">
+                  <p>Hello,</p>
+                  <p>A new task has been scheduled </p>
+      
+                  <div class="task-details">
+                    <p><span>Email:</span> ${taskData.createdBy}</p>
+                    <p><span>Scheduled Date:</span> ${new Date(
+                      taskData.startDate
+                    ).toLocaleString()}</p>
+                    <p><span>Time:</span> ${taskData.estimatedTime}</p>
+                    <p><span>Time Slots:</span> ${taskData.selectedTimeSlots.join(
+                      ", "
+                    )}</p>
+                  </div>
+      
+                  <p>Please click one of the buttons below to accept or reject the task:</p>
+                  <div class="cta-buttons">
+                    <a href="${approveLink}" class="accept">Approve</a>
+                    <a href="${rejectLink}" class="reject">Deny</a>
+                  </div>
+                </div>
+                <div class="footer">
+                  <p>If you have any questions, please contact the administrator.</p>
+                </div>
+              </div>
+            </body>
+            </html>
+            `,
+          };
+      
+          try {
+            await transporter.sendMail(mailOptions);
+            console.log(`Email sent to ${authorEmail} for ${machineTitle}`);
+          } catch (error) {
+            console.error(`Failed to send email to ${authorEmail}:`, error);
+          }
+        };
+      
+        const emailPromises = machines.map(async (machine) => {
+          if (machine.author) {
+            await sendEmailToAuthor(machine.author, machine.title);
+          }
+        });
+      
+        try {
+          await Promise.all(emailPromises);
+          res.status(200).json({
+            success: true,
+            data: { _id: result.insertedId, ...taskData },
+            message: "Task created and emails sent.",
+          });
+        } catch (error) {
+          console.error("Failed to send all emails:", error);
+          res.status(500).json({
+            success: false,
+            message: "Task created but failed to send some emails",
+            error: error.message,
+          });
+        }
+      }
+      else {
+        const studentMailOptions = {
           from: `${process.env.USER_EMAIL}`,
-          to: authorEmail,
-          subject: `Approval Request for ${machineTitle}`,
+          to: `${taskData?.createdBy}`,
+          subject: "Task Scheduled Successfully",
           html: `
-           <!DOCTYPE html>
-          <html lang="en">
-          <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Task Notification</title>
-            <style>
-              body {
-                font-family: Arial, sans-serif;
-                background-color: #f4f4f4;
-                margin: 0;
-                padding: 0;
-              }
-              .email-container {
-                max-width: 600px;
-                margin: 40px auto;
-                background-color: #ffffff;
-                padding: 20px;
-                border-radius: 8px;
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-                border: 1px solid #e0e0e0; /* Added border for the body */
-              }
-              .header {
-                text-align: center;
-                background-color: #007bff;
-                padding: 15px;
-                border-top-left-radius: 8px;
-                border-top-right-radius: 8px;
-                color: #ffffff;
-              }
-              .header h1 {
-                margin: 0;
-                font-size: 24px;
-              }
-              .content {
-                padding: 20px;
-                line-height: 1.6;
-              }
-              .content p {
-                margin: 0 0 10px;
-                font-size: 16px;
-              }
-              .task-details {
-                background-color: #f9f9f9;
-                padding: 10px;
-                border-radius: 6px;
-                margin-top: 15px;
-              }
-              .task-details p {
-                margin: 5px 0;
-                font-size: 15px;
-              }
-              .task-details span {
-                font-weight: bold;
-              }
-              .cta-buttons {
-                margin-top: 20px;
-                text-align: center;
-              }
-              .cta-buttons a {
-                text-decoration: none;
-                padding: 12px 20px;
-                border-radius: 5px;
-                font-size: 16px;
-                color: #ffffff;
-                margin: 0 10px;
-                display: inline-block;
-                transition: background-color 0.3s ease; /* Smooth hover transition */
-              }
-              .cta-buttons a.accept {
-                background-color: #28a745;
-                border: 1px solid #28a745;
-              }
-              .cta-buttons a.reject {
-                background-color: #dc3545;
-                border: 1px solid #dc3545;
-              }
-              /* Hover effects for the buttons */
-              .cta-buttons a.accept:hover {
-                background-color: #218838;
-              }
-              .cta-buttons a.reject:hover {
-                background-color: #c82333;
-              }
-              .footer {
-                margin-top: 30px;
-                text-align: center;
-                font-size: 14px;
-                color: #888888;
-              }
-            </style>
-          </head>
-          <body>
-            <div class="email-container">
-              <div class="header">
-                <h1>New Task Assigned</h1>
-              </div>
-              <div class="content">
-                <p>Hello,</p>
-                <p>A new task has been scheduled </p>
-    
-                <div class="task-details">
-                  <p><span>Email:</span> ${taskData.createdBy}</p>
-                  <p><span>Scheduled Date:</span> ${new Date(
-                    taskData.startDate
-                  ).toLocaleString()}</p>
-                  <p><span>Time:</span> ${taskData.estimatedTime}</p>
-                  <p><span>Time Slots:</span> ${taskData.selectedTimeSlots.join(
-                    ", "
-                  )}</p>
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>Task Notification</title>
+              <style>
+                body {
+                  font-family: Arial, sans-serif;
+                  background-color: #f4f4f4;
+                  margin: 0;
+                  padding: 0;
+                }
+                .email-container {
+                  max-width: 600px;
+                  margin: 40px auto;
+                  background-color: #ffffff;
+                  padding: 20px;
+                  border-radius: 8px;
+                  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+                  border: 1px solid #e0e0e0; /* Added border for the body */
+                }
+                .header {
+                  text-align: center;
+                  background-color: #28a745;
+                  padding: 15px;
+                  border-top-left-radius: 8px;
+                  border-top-right-radius: 8px;
+                  color: #ffffff;
+                }
+                .header h1 {
+                  margin: 0;
+                  font-size: 24px;
+                }
+                .content {
+                  padding: 20px;
+                  line-height: 1.6;
+                }
+                .content p {
+                  margin: 0 0 10px;
+                  font-size: 16px;
+                }
+                .task-details {
+                  background-color: #f9f9f9;
+                  padding: 10px;
+                  border-radius: 6px;
+                  margin-top: 15px;
+                }
+                .task-details p {
+                  margin: 5px 0;
+                  font-size: 15px;
+                }
+                .task-details span {
+                  font-weight: bold;
+                }
+                .footer {
+                  margin-top: 30px;
+                  text-align: center;
+                  font-size: 14px;
+                  color: #888888;
+                }
+              </style>
+            </head>
+            <body>
+              <div class="email-container">
+                <div class="header">
+                  <h1>Task Scheduled Successfully</h1>
                 </div>
-    
-                <p>Please click one of the buttons below to accept or reject the task:</p>
-                <div class="cta-buttons">
-                  <a href="${approveLink}" class="accept">Approve</a>
-                  <a href="${rejectLink}" class="reject">Deny</a>
+                <div class="content">
+                   <p>Hi there,</p>
+                   <p>We're excited to let you know that you have successfully scheduled a new task! 🎉</p>
+    <p>Please find the details below:</p>
+                  <div class="task-details">
+                    <p><span>Task Name:</span> ${taskData.taskName}</p>
+                     <p><span>Courses:</span> ${taskData.selectedCourse.join(
+                       ", "
+                     )}</p>
+                     <p><span>Machine:</span> ${taskData.selectedMachine.join(
+                       ", "
+                     )}</p>
+                     <p><span>Estimated Time Required:</span> ${
+                       taskData.estimatedTime
+                     }</p>
+                    <p><span>Scheduled Date:</span> ${new Date(
+                      taskData.startDate
+                    ).toLocaleString()}</p>
+                    <p><span>Time Slots:</span> ${taskData.selectedTimeSlots.join(
+                      ", "
+                    )}</p>
+                  </div>
                 </div>
               </div>
-              <div class="footer">
-                <p>If you have any questions, please contact the administrator.</p>
-              </div>
-            </div>
-          </body>
-          </html>
+            </body>
+            </html>
           `,
         };
-    
+  
         try {
-          await transporter.sendMail(mailOptions);
-          console.log(`Email sent to ${authorEmail} for ${machineTitle}`);
+          await transporter.sendMail(studentMailOptions);
+          res.status(200).json({
+            success: true,
+            data: { _id: result.insertedId, ...taskData },
+            message: "Task created and email sent.",
+          });
         } catch (error) {
-          console.error(`Failed to send email to ${authorEmail}:`, error);
+          console.error("Failed to send email:", error);
+          res.status(500).json({
+            success: false,
+            message: "Task created but failed to send email",
+            error: error.message,
+          });
         }
-      };
-    
-      const emailPromises = taskData?.selectedMachine?.map(async (machine) => {
-        if (machine.author) {
-          await sendEmailToAuthor(machine.author, machine.title);
-        }
-      });
-    
-      try {
-        await Promise.all(emailPromises);
-        res.status(200).json({
-          success: true,
-          data: { _id: result.insertedId, ...taskData },
-          message: "Task created and emails sent.",
-        });
-      } catch (error) {
-        console.error("Failed to send all emails:", error);
-        res.status(500).json({
-          success: false,
-          message: "Task created but failed to send some emails",
-          error: error.message,
-        });
       }
-    }
-    else {
-      const studentMailOptions = {
-        from: `${process.env.USER_EMAIL}`,
-        to: `${taskData?.createdBy}`,
-        subject: "Task Scheduled Successfully",
-        html: `
-          <!DOCTYPE html>
-          <html lang="en">
-          <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Task Notification</title>
-            <style>
-              body {
-                font-family: Arial, sans-serif;
-                background-color: #f4f4f4;
-                margin: 0;
-                padding: 0;
-              }
-              .email-container {
-                max-width: 600px;
-                margin: 40px auto;
-                background-color: #ffffff;
-                padding: 20px;
-                border-radius: 8px;
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-                border: 1px solid #e0e0e0; /* Added border for the body */
-              }
-              .header {
-                text-align: center;
-                background-color: #28a745;
-                padding: 15px;
-                border-top-left-radius: 8px;
-                border-top-right-radius: 8px;
-                color: #ffffff;
-              }
-              .header h1 {
-                margin: 0;
-                font-size: 24px;
-              }
-              .content {
-                padding: 20px;
-                line-height: 1.6;
-              }
-              .content p {
-                margin: 0 0 10px;
-                font-size: 16px;
-              }
-              .task-details {
-                background-color: #f9f9f9;
-                padding: 10px;
-                border-radius: 6px;
-                margin-top: 15px;
-              }
-              .task-details p {
-                margin: 5px 0;
-                font-size: 15px;
-              }
-              .task-details span {
-                font-weight: bold;
-              }
-              .footer {
-                margin-top: 30px;
-                text-align: center;
-                font-size: 14px;
-                color: #888888;
-              }
-            </style>
-          </head>
-          <body>
-            <div class="email-container">
-              <div class="header">
-                <h1>Task Scheduled Successfully</h1>
-              </div>
-              <div class="content">
-                 <p>Hi there,</p>
-                 <p>We're excited to let you know that you have successfully scheduled a new task! 🎉</p>
-  <p>Please find the details below:</p>
-                <div class="task-details">
-                  <p><span>Task Name:</span> ${taskData.taskName}</p>
-                   <p><span>Courses:</span> ${taskData.selectedCourse.join(
-                     ", "
-                   )}</p>
-                   <p><span>Machine:</span> ${taskData.selectedMachine.join(
-                     ", "
-                   )}</p>
-                   <p><span>Estimated Time Required:</span> ${
-                     taskData.estimatedTime
-                   }</p>
-                  <p><span>Scheduled Date:</span> ${new Date(
-                    taskData.startDate
-                  ).toLocaleString()}</p>
-                  <p><span>Time Slots:</span> ${taskData.selectedTimeSlots.join(
-                    ", "
-                  )}</p>
-                </div>
-              </div>
-            </div>
-          </body>
-          </html>
-        `,
-      };
-
-      try {
-        await transporter.sendMail(studentMailOptions);
-        res.status(200).json({
-          success: true,
-          data: { _id: result.insertedId, ...taskData },
-          message: "Task created and email sent.",
-        });
-      } catch (error) {
-        console.error("Failed to send email:", error);
-        res.status(500).json({
-          success: false,
-          message: "Task created but failed to send email",
-          error: error.message,
-        });
-      }
-    }
+  } catch (error) {
+      console.error("Error fetching machines:", error);
+  }
+   
   } catch (error) {
     console.error("Error creating task:", error);
     res.status(500).json({
