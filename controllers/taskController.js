@@ -6,6 +6,7 @@ const transporter = require("../utils/mailer");
 const createTask = async (req, res) => {
   try {
     const taskData = req.body;
+    taskData.authorApproval = []; 
     const tasksCollection = getDB("lab-scheduler").collection("tasks");
     const machinesCollection = getDB("lab-scheduler").collection("machines");
     const taskMachines = taskData.selectedMachine;
@@ -14,8 +15,6 @@ const createTask = async (req, res) => {
       const machines = await machinesCollection.find({
           title: { $in: taskMachines } // Replace 'title' with the actual field name
       }).toArray();
-  
-      console.log(machines);
       {
         taskData.sendApproval
           ? (taskData.approve = "Pending")
@@ -26,14 +25,13 @@ const createTask = async (req, res) => {
       if (taskData.sendApproval) {
         taskData.approve = "Pending";
         const taskId = result.insertedId;
-        const approveLink = `https://lab-scheduler-tau.vercel.app/tasks/approve/${taskId}`;
-        const rejectLink = `https://lab-scheduler-tau.vercel.app/tasks/reject/${taskId}`;
-      
-        const sendEmailToAuthor = async (authorEmail, machineTitle) => {
+        const sendEmailToAuthor = async (authorEmail, machine) => {
+          const approveLink = `https://lab-scheduler-tau.vercel.app/tasks/approve/${taskId}?author=${authorEmail}`;
+          const rejectLink = `https://lab-scheduler-tau.vercel.app/tasks/reject/${taskId}?author=${authorEmail}`;
           const mailOptions = {
             from: `${process.env.USER_EMAIL}`,
             to: authorEmail,
-            subject: `Approval Request for ${machineTitle}`,
+            subject: `Approval Request for ${machine.title}`,
             html: `
              <!DOCTYPE html>
             <html lang="en">
@@ -164,20 +162,24 @@ const createTask = async (req, res) => {
       
           try {
             await transporter.sendMail(mailOptions);
-            console.log(`Email sent to ${authorEmail} for ${machineTitle}`);
+            console.log(`Email sent to ${authorEmail} for ${machine.title}`);
           } catch (error) {
             console.error(`Failed to send email to ${authorEmail}:`, error);
           }
         };
-      
         const emailPromises = machines.map(async (machine) => {
           if (machine.author) {
-            await sendEmailToAuthor(machine.author, machine.title);
+            taskData.authorApproval.push({ author: machine.author, status: "Pending" });
+            await sendEmailToAuthor(machine.author, machine);
           }
         });
       
         try {
           await Promise.all(emailPromises);
+          await tasksCollection.updateOne(
+            { _id: taskId },
+            { $set: { authorApproval: taskData.authorApproval } }
+          );
           res.status(200).json({
             success: true,
             data: { _id: result.insertedId, ...taskData },
@@ -328,20 +330,44 @@ const createTask = async (req, res) => {
 const approveTask = async (req, res) => {
   try {
     const taskId = req.params.id;
+    const { author } = req.body;
+    
     const tasksCollection = getDB("lab-scheduler").collection("tasks");
+
 
     const taskData = await tasksCollection.findOne({
       _id: new ObjectId(taskId),
     });
-
+    
     if (!taskData) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Task not found" });
+      return res.status(404).json({ success: false, message: "Task not found" });
     }
 
-    // Change status only if it's "Pending"
-    if (taskData.approve === "Pending") {
+
+    const authorApprovalIndex = taskData.authorApproval.findIndex(
+      (approval) => approval.author === author
+    );
+
+    if (authorApprovalIndex === -1) {
+      return res.status(404).json({ success: false, message: "Author not found in author approvals" });
+    }
+
+    if (taskData.authorApproval[authorApprovalIndex].status !== "Approved") {
+      taskData.authorApproval[authorApprovalIndex].status = "Approved";
+
+     await tasksCollection.updateOne(
+        { _id: new ObjectId(taskId) },
+        { $set: { authorApproval: taskData.authorApproval } }
+      );
+    }
+
+    // Check if all author approvals are "Approved"
+    const allApproved = taskData.authorApproval.every(
+      (approval) => approval.status === "Approved"
+    );
+
+    if (allApproved) {
+      // Update the overall task approval status to "Approved"
       await tasksCollection.updateOne(
         { _id: new ObjectId(taskId) },
         { $set: { approve: "Approved" } }
@@ -349,7 +375,7 @@ const approveTask = async (req, res) => {
 
       const studentMailOptions = {
         from: `${process.env.USER_EMAIL}`,
-        to: `${taskData?.createdBy}`, // Consider using taskData.email or a variable for dynamic emails
+        to: `${taskData?.createdBy}`,
         subject: "Task Scheduled Successfully",
         html: `
           <!DOCTYPE html>
@@ -379,19 +405,11 @@ const approveTask = async (req, res) => {
                  <p>Please find the details below:</p>
                 <div class="task-details">
                   <p><span>Task Name:</span> ${taskData.taskName}</p>
-                   <p><span>Courses:</span> ${taskData.selectedCourse.join(
-                     ", "
-                   )}</p>
+                   <p><span>Courses:</span> ${taskData.selectedCourse.join(", ")}</p>
                    <p><span>Machine:</span> ${taskData?.selectedMachine?.map(machine => machine.title).join(", ")}</p>
-                   <p><span>Estimated Time Required:</span> ${
-                     taskData.estimatedTime
-                   }</p>
-                  <p><span>Scheduled Date:</span> ${new Date(
-                    taskData.startDate
-                  ).toLocaleString()}</p>
-                  <p><span>Time Slots:</span> ${taskData.selectedTimeSlots.join(
-                    ", "
-                  )}</p>
+                   <p><span>Estimated Time Required:</span> ${taskData.estimatedTime}</p>
+                  <p><span>Scheduled Date:</span> ${new Date(taskData.startDate).toLocaleString()}</p>
+                  <p><span>Time Slots:</span> ${taskData.selectedTimeSlots.join(", ")}</p>
                 </div>
               </div>
             </div>
@@ -415,9 +433,10 @@ const approveTask = async (req, res) => {
         });
       }
     } else {
-      return res
-        .status(400)
-        .json({ success: false, message: "Task must be Pending to approve." });
+      return res.status(200).json({
+        success: true,
+        message: "Author approval updated, but task not fully approved yet.",
+      });
     }
   } catch (error) {
     console.error("Error approving task:", error);
@@ -428,32 +447,52 @@ const approveTask = async (req, res) => {
     });
   }
 };
+
 const rejectTask = async (req, res) => {
   try {
     const taskId = req.params.id;
+    const { author } = req.body;
+
     const tasksCollection = getDB("lab-scheduler").collection("tasks");
 
+    // Fetch the task from the database
     const taskData = await tasksCollection.findOne({
       _id: new ObjectId(taskId),
     });
 
     if (!taskData) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Task not found" });
+      return res.status(404).json({ success: false, message: "Task not found" });
     }
 
-    // Change status only if it's "Pending"
-    if (taskData.approve === "Pending") {
+    // Find the index of the author in authorApproval
+    const authorApprovalIndex = taskData.authorApproval.findIndex(
+      (approval) => approval.author === author
+    );
+
+    if (authorApprovalIndex === -1) {
+      return res.status(404).json({ success: false, message: "Author not found in author approvals" });
+    }
+
+    // Check if the author's status is already set to "Rejected"
+    if (taskData.authorApproval[authorApprovalIndex].status !== "Rejected") {
+      // Update the specific author's approval status to "Rejected"
+      taskData.authorApproval[authorApprovalIndex].status = "Rejected";
+
+      // Update the database with the modified authorApproval array
       await tasksCollection.updateOne(
         { _id: new ObjectId(taskId) },
-        { $set: { approve: "Rejected" } }
+        {
+          $set: {
+            authorApproval: taskData.authorApproval,
+            approve: "Rejected",
+          },
+        }
       );
 
       const studentMailOptions = {
         from: `${process.env.USER_EMAIL}`,
-        to: `${taskData?.createdBy}`, // Consider using taskData.email or a variable for dynamic emails
-        subject: "Task Scheduled Denied",
+        to: `${taskData?.createdBy}`,
+        subject: "Task Rejection Notification",
         html: `
           <!DOCTYPE html>
           <html lang="en">
@@ -474,26 +513,19 @@ const rejectTask = async (req, res) => {
           <body>
             <div class="email-container">
               <div class="header">
-                <h1>Task Denied</h1>
+                <h1>Task Rejected</h1>
               </div>
               <div class="content">
-                  <p>Hi there,</p>
-                <p>Thank you for your submission. After careful consideration, we regret to inform you that your task has not been approved at this time.</p>
+                <p>Hi there,</p>
+                <p>We regret to inform you that the task you scheduled has been rejected.</p>
+                <p>Please find the details below:</p>
                 <div class="task-details">
                   <p><span>Task Name:</span> ${taskData.taskName}</p>
-                   <p><span>Courses:</span> ${taskData.selectedCourse.join(
-                     ", "
-                   )}</p>
-                   <p><span>Machine:</span> ${taskData?.selectedMachine?.map(machine => machine.title).join(", ")}</p>
-                   <p><span>Estimated Time Required:</span> ${
-                     taskData.estimatedTime
-                   }</p>
-                  <p><span>Scheduled Date:</span> ${new Date(
-                    taskData.startDate
-                  ).toLocaleString()}</p>
-                  <p><span>Time Slots:</span> ${taskData.selectedTimeSlots.join(
-                    ", "
-                  )}</p>
+                  <p><span>Courses:</span> ${taskData.selectedCourse.join(", ")}</p>
+                  <p><span>Machine:</span> ${taskData?.selectedMachine?.map(machine => machine.title).join(", ")}</p>
+                  <p><span>Estimated Time Required:</span> ${taskData.estimatedTime}</p>
+                  <p><span>Scheduled Date:</span> ${new Date(taskData.startDate).toLocaleString()}</p>
+                  <p><span>Time Slots:</span> ${taskData.selectedTimeSlots.join(", ")}</p>
                 </div>
               </div>
             </div>
@@ -506,7 +538,7 @@ const rejectTask = async (req, res) => {
         await transporter.sendMail(studentMailOptions);
         return res.status(200).json({
           success: true,
-          message: "Task rejected successfully and email sent.",
+          message: "Task rejected and email sent.",
         });
       } catch (emailError) {
         console.error("Failed to send email:", emailError);
@@ -517,19 +549,22 @@ const rejectTask = async (req, res) => {
         });
       }
     } else {
-      return res
-        .status(400)
-        .json({ success: false, message: "Task must be Pending to approve." });
+      return res.status(200).json({
+        success: true,
+        message: "Author rejection already recorded.",
+      });
     }
   } catch (error) {
-    console.error("Error approving task:", error);
+    console.error("Error rejecting task:", error);
     res.status(500).json({
       success: false,
-      message: "Failed to approve task",
+      message: "Failed to reject task",
       error: error.message,
     });
   }
 };
+
+
 
 const getTasks = async (req, res) => {
   const username = req.query.username;
