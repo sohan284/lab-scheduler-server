@@ -4,12 +4,14 @@ const {
   createTask,
   approveTask,
   rejectTask,
+  removeTasks,
 } = require("../controllers/taskController");
 
 const router = express.Router();
 
 router.get("/scheduledtasks", getTasks);
 router.post("/scheduledtasks", createTask);
+router.delete('/tasks/:id',removeTasks)
 
 router.put("/tasks/approve/:id", approveTask);
 router.put("/tasks/reject/:id", rejectTask);

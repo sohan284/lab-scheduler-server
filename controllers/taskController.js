@@ -564,8 +564,6 @@ const rejectTask = async (req, res) => {
   }
 };
 
-
-
 const getTasks = async (req, res) => {
   const username = req.query.username;
 
@@ -596,10 +594,48 @@ const getTasks = async (req, res) => {
     });
   }
 };
+const removeTasks = async (req, res) => {
+  const taskId = req.params.id; // Assume the task ID is sent as a route parameter
+
+  if (!taskId) {
+    return res.status(400).json({
+      success: false,
+      message: "Task ID is required",
+    });
+  }
+
+  try {
+    const tasksCollection = getDB("lab-scheduler").collection("tasks");
+    
+    // Use the deleteOne method to remove the task
+    const result = await tasksCollection.deleteOne({ _id: new ObjectId(taskId) });
+
+    if (result.deletedCount === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Task not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Task removed successfully",
+    });
+  } catch (error) {
+    console.error("Error removing task:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to remove task",
+      message: error.message,
+    });
+  }
+};
+
 
 module.exports = {
   getTasks,
   createTask,
   approveTask,
   rejectTask,
+  removeTasks,
 };
