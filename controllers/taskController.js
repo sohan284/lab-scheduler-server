@@ -568,17 +568,33 @@ const getTasks = async (req, res) => {
   const username = req.query.username;
 
   let filter = {};
-
   if (username) {
     filter = { createdBy: username };
   }
 
   try {
     const tasksCollection = getDB("lab-scheduler").collection("tasks");
+    
+    // Fetch the tasks
     const result = await tasksCollection
-      .find(filter) // Apply the filter (either empty or with username)
-      .sort({ _id: -1 }) // Sort by ID in descending order
+      .find(filter)
+      .sort({ _id: -1 })
       .toArray();
+
+    // Get the current date and time
+    const now = new Date();
+
+    // Prepare update promises
+    const updatePromises = result.map(async (task) => {
+      if (task.startDate && new Date(task.startDate) < now) {
+        await tasksCollection.updateOne(
+          { _id: task._id },
+          { $set: { approve: 'Completed' } }
+        );
+      }
+    });
+
+    await Promise.all(updatePromises);
 
     res.status(200).json({
       success: true,
@@ -594,6 +610,7 @@ const getTasks = async (req, res) => {
     });
   }
 };
+
 const removeTasks = async (req, res) => {
   const taskId = req.params.id; // Assume the task ID is sent as a route parameter
 

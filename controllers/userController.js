@@ -25,7 +25,81 @@ const sendOtp = async (req, res) => {
     from: "srsohan284@gmail.com",
     to: email,
     subject: "Your OTP Code",
-    text: `Your OTP code is ${otp}. It is valid for 2 minutes.`,
+    html: `
+  <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your OTP Code</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f7f9fc;
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+        }
+        .container {
+            background: linear-gradient(135deg, #d3cce3, #e9e4f0);
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            margin: auto;
+            color: #333;
+        }
+        h2 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: #4a4a4a;
+        }
+        .otp-code {
+            font-size: 36px;
+            font-weight: bold;
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        .otp-digit {
+            border: 3px solid #4a90e2; /* Light blue */
+            border-radius: 5px;
+            padding: 15px;
+            margin: 0 5px;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            background-color: #e1f5fe; /* Light blue background */
+            color: #4a90e2; /* Darker blue for text */
+        }
+        .footer {
+            margin-top: 30px;
+            font-size: 12px;
+            border-top: 1px solid rgba(0, 0, 0, 0.1);
+            padding-top: 15px;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Your OTP Code</h2>
+        <div class="otp-code">
+            ${otp}
+        </div>
+        <p>Your OTP code is valid for <strong>2 minutes</strong>.</p>
+        <p>Thank you for using our service!</p>
+        <div class="footer">
+            &copy; ${new Date().getFullYear()} All rights reserved.
+        </div>
+    </div>
+</body>
+</html>
+
+`
   };
 
   try {
