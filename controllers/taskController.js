@@ -575,24 +575,26 @@ const getTasks = async (req, res) => {
   try {
     const tasksCollection = getDB("lab-scheduler").collection("tasks");
     
-    // Fetch the tasks
     const result = await tasksCollection
       .find(filter)
       .sort({ _id: -1 })
       .toArray();
 
-    // Get the current date and time
-    const now = new Date();
+      const now = new Date(); 
 
-    // Prepare update promises
-    const updatePromises = result.map(async (task) => {
-      if (task.startDate && new Date(task.startDate) < now) {
-        await tasksCollection.updateOne(
-          { _id: task._id },
-          { $set: { approve: 'Completed' } }
-        );
-      }
-    });
+      const updatePromises = result.map(async (task) => {
+        if (task.startDate) {
+          const taskDate = new Date(task.startDate);
+      
+          if (taskDate < now) {
+            await tasksCollection.updateOne(
+              { _id: task._id },
+              { $set: { approve: 'Completed' } }
+            );
+          }
+        }
+      });
+      
 
     await Promise.all(updatePromises);
 
