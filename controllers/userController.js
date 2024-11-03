@@ -142,7 +142,7 @@ const verifyOtp = async (req, res) => {
 const upsertUser = async (req, res) => {
   try {
     const usersCollection = getDB("lab-scheduler").collection("users");
-    const { username, password, role } = req.body;
+    const { username, password, role , createdAt } = req.body;
 
     const existingUser = await usersCollection.findOne({ username });
 
@@ -163,6 +163,7 @@ const upsertUser = async (req, res) => {
         username,
         password: hashedPassword,
         role,
+        createdAt,
       },
     };
 
