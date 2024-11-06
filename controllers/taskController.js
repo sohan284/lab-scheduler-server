@@ -334,7 +334,6 @@ const approveTask = async (req, res) => {
     
     const tasksCollection = getDB("lab-scheduler").collection("tasks");
 
-
     const taskData = await tasksCollection.findOne({
       _id: new ObjectId(taskId),
     });
@@ -580,12 +579,14 @@ const getTasks = async (req, res) => {
       .sort({ _id: -1 })
       .toArray();
 
-      const now = new Date(); 
-
+      const now = new Date();
+      now.setHours(0, 0, 0, 0); // Set to the start of the current day (midnight)
+      
       const updatePromises = result.map(async (task) => {
         if (task.startDate) {
           const taskDate = new Date(task.startDate);
       
+          // Check if the task date is before the start of today
           if (taskDate < now) {
             await tasksCollection.updateOne(
               { _id: task._id },
@@ -594,6 +595,7 @@ const getTasks = async (req, res) => {
           }
         }
       });
+      
       
 
     await Promise.all(updatePromises);
