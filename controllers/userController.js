@@ -7,93 +7,98 @@ const saltRounds = 10; // You can adjust this number for more security but it wi
 const crypto = require("crypto");
 let otpStore = {};
 const sendOtp = async (req, res) => {
-  const { email } = req.body;
+  const { email, purpose } = req.body;
   const usersCollection = getDB("lab-scheduler").collection("users");
+  
   const existingUser = await usersCollection.findOne({ username: email });
 
-  if (existingUser) {
+  if (purpose === "signup" && existingUser) {
     return res.status(409).json({
       success: false,
       message: "Username already exists",
     });
   }
+
+  if (purpose === "forgotPassword" && !existingUser) {
+    return res.status(404).json({
+      success: false,
+      message: "User does not exist",
+    });
+  }
+
   const otp = crypto.randomInt(100000, 999999).toString();
 
+  // Store the OTP with a timestamp
   otpStore[email] = { otp, createdAt: Date.now() };
 
   const mailOptions = {
-    from: "srsohan284@gmail.com",
+    from: "sr.sohan088@gmail.com",
     to: email,
     subject: "Your OTP Code",
     html: `
-  <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Your OTP Code</title>
-    <style>
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Your OTP Code</title>
+      <style>
         body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-            text-align: center;
+          font-family: Arial, sans-serif;
+          margin: 0;
+          padding: 20px;
+          text-align: center;
         }
         .container {
-        border :2px solid black;
-            border-radius: 10px;
-            padding: 30px;
-             max-width: 600px;
-            margin: auto;
+          border: 2px solid black;
+          border-radius: 10px;
+          padding: 30px;
+          max-width: 600px;
+          margin: auto;
         }
         h2 {
-            font-size: 24px;
-            margin-bottom: 20px;
+          font-size: 24px;
+          margin-bottom: 20px;
         }
         .otp-code {
-            font-size: 36px;
-            font-weight: bold;
-            display: flex;
-            justify-content: center;
-            margin: 20px 0;
+          font-size: 36px;
+          font-weight: bold;
+          display: flex;
+          justify-content: center;
+          margin: 20px 0;
         }
         .otp-digit {
-            border: 3px solid #4a90e2; /* Light blue */
-            border-radius: 5px;
-            padding: 15px;
-            margin: 0 5px;
-            width: 50px;
-            height: 50px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 28px;
-            background-color: #e1f5fe; /* Light blue background */
+          border: 3px solid #4a90e2;
+          border-radius: 5px;
+          padding: 15px;
+          margin: 0 5px;
+          width: 50px;
+          height: 50px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 28px;
+          background-color: #e1f5fe;
         }
         .footer {
-            margin-top: 30px;
-            font-size: 12px;
-            border-top: 1px solid rgba(0, 0, 0, 0.1);
-            padding-top: 15px;
+          margin-top: 30px;
+          font-size: 12px;
+          border-top: 1px solid rgba(0, 0, 0, 0.1);
+          padding-top: 15px;
         }
-    </style>
-</head>
-<body>
-    <div class="container">
+      </style>
+    </head>
+    <body>
+      <div class="container">
         <h2>Your OTP Code</h2>
-        <div class="otp-code">
-            ${otp}
-        </div>
+        <div class="otp-code">${otp}</div>
         <p>Your OTP code is valid for <strong>2 minutes</strong>.</p>
         <p>Thank you for using our service!</p>
-        <div class="footer">
-            &copy; ${new Date().getFullYear()} All rights reserved.
-        </div>
-    </div>
-</body>
-</html>
-
-`
+        <div class="footer">&copy; ${new Date().getFullYear()} All rights reserved.</div>
+      </div>
+    </body>
+    </html>
+    `
   };
 
   try {
@@ -108,6 +113,7 @@ const sendOtp = async (req, res) => {
     });
   }
 };
+
 const verifyOtp = async (req, res) => {
   const { email, otp } = req.body;
 
@@ -136,28 +142,45 @@ const verifyOtp = async (req, res) => {
 const upsertUser = async (req, res) => {
   try {
     const usersCollection = getDB("lab-scheduler").collection("users");
-    const { username, password, role , createdAt } = req.body;
+    const { username, password, role, createdAt } = req.body;
 
     const existingUser = await usersCollection.findOne({ username });
 
     if (existingUser) {
-      return res.status(409).json({
-        success: false,
-        message: "Username already exists",
+      // Update only the password if it exists, without altering other fields
+      const hashedPassword = await bcrypt.hash(password, saltRounds);
+      const updateDoc = { $set: { password: hashedPassword } };
+
+      const result = await usersCollection.updateOne(
+        { username },
+        updateDoc
+      );
+
+      const token = jwt.sign({ username }, `${process.env.JWT_SECRET}`, {
+        expiresIn: "1h",
+      });
+
+      return res.status(200).json({
+        success: true,
+        data: result,
+        token,
+        message: "Password updated successfully",
       });
     }
 
-    // Hash the password before saving
+    // Hash the password before saving for a new user
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
     const filter = { username };
     const options = { upsert: true };
+
+    // Only add fields if they are provided
     const updateDoc = {
       $set: {
         username,
         password: hashedPassword,
-        role,
-        createdAt,
+        ...(role && { role }),
+        ...(createdAt && { createdAt }),
       },
     };
 
@@ -182,6 +205,7 @@ const upsertUser = async (req, res) => {
     });
   }
 };
+
 
 const loginUser = async (req, res) => {
   const { username, password } = req.body;
@@ -248,6 +272,7 @@ const updateUser = async (req, res) => {
       message: "Role is required to update the user",
     });
   }
+  
 
   try {
     const usersCollection = getDB("lab-scheduler").collection("users");
