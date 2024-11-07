@@ -35,24 +35,20 @@ const sendOtp = async (req, res) => {
     <style>
         body {
             font-family: Arial, sans-serif;
-            background-color: #f7f9fc;
             margin: 0;
             padding: 20px;
             text-align: center;
         }
         .container {
-            background: linear-gradient(135deg, #d3cce3, #e9e4f0);
+        border :2px solid black;
             border-radius: 10px;
             padding: 30px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-            max-width: 600px;
+             max-width: 600px;
             margin: auto;
-            color: #333;
         }
         h2 {
             font-size: 24px;
             margin-bottom: 20px;
-            color: #4a4a4a;
         }
         .otp-code {
             font-size: 36px;
@@ -73,14 +69,12 @@ const sendOtp = async (req, res) => {
             justify-content: center;
             font-size: 28px;
             background-color: #e1f5fe; /* Light blue background */
-            color: #4a90e2; /* Darker blue for text */
         }
         .footer {
             margin-top: 30px;
             font-size: 12px;
             border-top: 1px solid rgba(0, 0, 0, 0.1);
             padding-top: 15px;
-            color: #999;
         }
     </style>
 </head>
