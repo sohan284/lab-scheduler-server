@@ -1,5 +1,5 @@
-const { getDB } = require("../config/db");
 const { ObjectId } = require("mongodb");
+const { getDB } = require("../config/db");
 
 const tutorialsCollection = getDB("lab-scheduler").collection("tutorials");
 
@@ -7,6 +7,7 @@ const tutorialsCollection = getDB("lab-scheduler").collection("tutorials");
 const createTutorial = async (req, res) => {
     try {
         const tutorialData = req.body;
+        console.log(tutorialData)
         const result = await tutorialsCollection.insertOne(tutorialData);
         res.status(201).json({
             success: true,
@@ -47,8 +48,9 @@ const updateTutorial = async (req, res) => {
         const { id } = req.params;
         const updateData = req.body;
         const result = await tutorialsCollection.updateOne(
-            { _id: new ObjectId(id)
- },
+            {
+                _id: new ObjectId(id)
+            },
             { $set: updateData }
         );
 
@@ -77,8 +79,9 @@ const updateTutorial = async (req, res) => {
 const deleteTutorial = async (req, res) => {
     try {
         const { id } = req.params;
-        const result = await tutorialsCollection.deleteOne({ _id: new ObjectId(id)
- });
+        const result = await tutorialsCollection.deleteOne({
+            _id: new ObjectId(id)
+        });
 
         if (result.deletedCount === 0) {
             return res.status(404).json({
