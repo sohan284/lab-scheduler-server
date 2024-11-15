@@ -3,7 +3,7 @@ require("dotenv").config();
 
 // const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.gavxd.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
-const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@labscheduler.ydxey.mongodb.net/?retryWrites=true&w=majority&appName=labScheduler`;
+const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.ifsk1.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
 const client = new MongoClient(uri, {
   serverApi: ServerApiVersion.v1,
