@@ -26,8 +26,8 @@ const createTask = async (req, res) => {
         taskData.approve = "Pending";
         const taskId = result.insertedId;
         const sendEmailToAuthor = async (authorEmail, machine) => {
-          const approveLink = `https://lab-scheduler-tau.vercel.app/tasks/approve/${taskId}?author=${authorEmail}`;
-          const rejectLink = `https://lab-scheduler-tau.vercel.app/tasks/reject/${taskId}?author=${authorEmail}`;
+          const approveLink = `https://lab-scheduler-client.vercel.app/tasks/approve/${taskId}?author=${authorEmail}`;
+          const rejectLink = `https://lab-scheduler-client.vercel.app/tasks/reject/${taskId}?author=${authorEmail}`;
           const mailOptions = {
             from: `${process.env.USER_EMAIL}`,
             to: authorEmail,

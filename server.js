@@ -13,6 +13,7 @@ const app = express();
 const allowedOrigins = [
   "http://localhost:5173",
   "https://lab-scheduler-tau.vercel.app",
+  "https://lab-scheduler-client.vercel.app",
   "https://lab-scheduler.netlify.app",
 ];
 
